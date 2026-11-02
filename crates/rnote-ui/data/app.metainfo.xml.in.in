@@ -6,7 +6,7 @@
   <project_license>GPL-3.0-or-later</project_license>
   <name translatable="no">@APP_NAME_CAPITALIZED@</name>
   <launchable type="desktop-id">@APP_ID@.desktop</launchable>
-  <summary>Sketch and take handwritten notes</summary>
+  <summary>Rnote with instant pen ink on GlassineOS e-ink devices</summary>
 
   <categories>
     <category>Graphics</category>
@@ -18,6 +18,12 @@
   </categories>
 
   <description>
+    <p>
+      Rnote Ink is an unofficial fork of Rnote by Felix Zwettler (https://rnote.flxzt.net), made for
+      GlassineOS e-ink tablets: the panel draws your pen strokes the moment the pen touches, with
+      the current pen's width, pressure curve, grey and texture, only on the canvas. Please report problems to
+      GlassineOS, not to the Rnote project.
+    </p>
     <p>
       Rnote is a vector-based drawing app for sketching, handwritten notes and to annotate documents
       and pictures.
@@ -74,12 +80,11 @@
     <display_length compare="ge">500</display_length>
   </recommends>
 
-  <url type="homepage">@APP_WEBSITE@</url>
-  <url type="bugtracker">@APP_ISSUES_URL@</url>
+  <url type="homepage">https://glassine.org</url>
+  <url type="bugtracker">https://github.com/GlassineOS</url>
   <url type="donation">@APP_DONATE_URL@</url>
-  <url type="vcs-browser">@APP_REPO_URL@</url>
-  <developer_name translatable="no">@APP_AUTHOR_NAME@</developer_name>
-  <update_contact>f.zwettler@posteo.de</update_contact>
+  <url type="vcs-browser">https://github.com/GlassineOS</url>
+  <developer_name translatable="no">GlassineOS</developer_name>
   <content_rating type="oars-1.0" />
 
   <provides>

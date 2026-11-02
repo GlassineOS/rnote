@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="glassine_ink_v1">
+  <copyright>
+    SPDX-License-Identifier: GPL-2.0-or-later
+  </copyright>
+  <description summary="pen ink areas for the e-ink panel">
+    On the Glassine the panel engine draws a pen stroke itself, straight from the
+    pen's events, long before the app's own rendering arrives (the app's frame
+    then replaces it). This protocol lets an app tell the compositor where on
+    its surfaces the pen draws: its canvas, not its toolbar. The compositor
+    removes every part covered by other surfaces (menus, the shell, the
+    keyboard, other windows). Without it, an app whose per-app setting has ink
+    on gets its whole visible window.
+  </description>
+
+  <interface name="glassine_ink_manager_v1" version="3">
+    <request name="destroy" type="destructor"/>
+
+    <request name="get_ink_surface">
+      <description summary="ink areas for a surface">
+        At most one per wl_surface (a second one is a protocol error).
+      </description>
+      <arg name="id" type="new_id" interface="glassine_ink_surface_v1"/>
+      <arg name="surface" type="object" interface="wl_surface"/>
+    </request>
+
+    <enum name="error">
+      <entry name="already_exists" value="0" summary="the surface has an ink object"/>
+    </enum>
+
+    <request name="create_brush" since="3">
+      <description summary="a brush the panel engine stamps along the stroke">
+        A declarative brush "Brushes"): a tip
+        (a disc or the app's own coverage masks), spacing, dynamics curves,
+        scatter, ink grey level and blend. The panel engine stamps it on the
+        CPU right at the pen's tip; the app's own frame replaces the preview
+        later, so it only has to look close. Select it with
+        glassine_ink_surface_v1.set_brush_object. A fresh brush is a hard black
+        disc (hardness 1, spacing 0.25, ink, grey 0, opacity 255, darken).
+      </description>
+      <arg name="id" type="new_id" interface="glassine_ink_brush_v1"/>
+    </request>
+  </interface>
+
+  <interface name="glassine_ink_surface_v1" version="3">
+    <request name="destroy" type="destructor">
+      <description summary="back to the window's default (its per-app setting)"/>
+    </request>
+
+    <request name="set_areas">
+      <description summary="where the pen draws, in surface coordinates">
+        The region is copied: later changes to the wl_region don't apply. An
+        empty region: the pen draws nowhere on this window. Null: back to the
+        default (the whole window if its per-app setting has ink on). Takes
+        effect with the compositor's next frame.
+      </description>
+      <arg name="region" type="object" interface="wl_region" allow-null="true"/>
+    </request>
+
+    <enum name="tool" since="2">
+      <entry name="tip" value="0" summary="the pen's tip"/>
+      <entry name="eraser" value="1" summary="the pen's eraser end"/>
+    </enum>
+
+    <enum name="kind" since="2">
+      <entry name="default" value="0" summary="back to the per-app setting (eink.conf brush=/eraser=)"/>
+      <entry name="none" value="1" summary="no preview: the app's frame shows the stroke"/>
+      <entry name="pen" value="2" summary="a black stroke"/>
+      <entry name="erase" value="3" summary="whitens: an eraser that removes ink"/>
+    </enum>
+
+    <request name="set_brush" since="2">
+      <description summary="the preview's stroke for this surface's areas">
+        What the panel engine draws for the given end of the pen while the app's
+        frame is on its way: match it to the app's current tool so the preview
+        and the app's rendering agree. Widths are diameters in surface
+        coordinates (so a zoomed canvas sends its zoomed width): width_min at
+        no pressure, width_max at full pressure, pressure^pressure_exponent in
+        between. The preview is black or white only (an e-ink fast update):
+        send none for light colours, highlighters and tools that don't draw.
+        Takes effect with the compositor's next frame, for strokes that start
+        after it.
+      </description>
+      <arg name="tool" type="uint" enum="tool"/>
+      <arg name="kind" type="uint" enum="kind"/>
+      <arg name="width_min" type="fixed"/>
+      <arg name="width_max" type="fixed"/>
+      <arg name="pressure_exponent" type="fixed"/>
+    </request>
+
+    <request name="set_brush_object" since="3">
+      <description summary="a declarative brush for one end of the pen">
+        Like set_brush with kind pen (or erase, by the brush's ink kind), with
+        the brush's tip, curves, scatter and ink. The widths are the diameter
+        range as in set_brush (surface coordinates; the brush's pressure_size
+        curve, if set, replaces pressure^pressure_exponent). The compositor
+        snapshots the brush at its next frame: later changes to the brush
+        object apply when it is selected again or at the compositor's next
+        frame after the change, for strokes that start after it. A null
+        brush is set_brush(tool, default). Destroying a selected brush keeps
+        the snapshot in force until the next set_brush/set_brush_object.
+      </description>
+      <arg name="tool" type="uint" enum="tool"/>
+      <arg name="brush" type="object" interface="glassine_ink_brush_v1" allow-null="true"/>
+      <arg name="width_min" type="fixed"/>
+      <arg name="width_max" type="fixed"/>
+    </request>
+  </interface>
+
+  <interface name="glassine_ink_brush_v1" version="3">
+    <description summary="a declarative pen-preview brush">
+      Limits (a protocol error past them): tip size 1..64 px, 1..16 variants,
+      at most 8 brushes per client in use at once (selected on a surface).
+      Fractions and the curve values are clamped to their ranges.
+    </description>
+
+    <request name="destroy" type="destructor"/>
+
+    <enum name="error">
+      <entry name="bad_tip" value="0" summary="tip size, variant count or fd size out of range"/>
+      <entry name="bad_curve" value="1" summary="a curve array that is not 16 bytes"/>
+      <entry name="too_many" value="2" summary="more than 8 brushes in use"/>
+    </enum>
+
+    <request name="set_shape">
+      <description summary="the dab's shape">
+        hardness 0..1: 1 = a hard disc (the default), lower = a soft edge
+        (coverage falls off linearly from hardness*radius to the radius);
+        ignored for a mask tip. spacing: the distance between dabs as a
+        fraction of the current diameter (0.02..4; 0.25 default). elongation
+        0.05..1: the dab's minor/major axis ratio (1 = round; a calligraphy
+        nib ~0.2). angle: degrees, of the major axis, by angle_mode.
+      </description>
+      <arg name="hardness" type="fixed"/>
+      <arg name="spacing" type="fixed"/>
+      <arg name="elongation" type="fixed"/>
+      <arg name="angle" type="fixed"/>
+      <arg name="angle_mode" type="uint" enum="angle_mode"/>
+    </request>
+
+    <enum name="angle_mode">
+      <entry name="fixed" value="0" summary="angle is absolute (in surface orientation): a calligraphy nib"/>
+      <entry name="direction" value="1" summary="angle is added to the stroke's direction"/>
+      <entry name="tilt" value="2" summary="angle is added to the pen's tilt direction (fixed when the pen reports no tilt)"/>
+    </enum>
+
+    <request name="set_tip">
+      <description summary="the app's own dab masks">
+        fd: size*size*variants bytes (read-only mapping suffices), one
+        8-bit coverage mask after the other, row-major, 255 = full ink, 0 =
+        none. Each dab picks a variant at random (per-stroke seed). The mask
+        is scaled (nearest) to the current diameter and rotated by the dab
+        angle. Rendering it yourself is the escape hatch for any brush look
+        (textures, pencil grain, chalk). size 0: back to the disc. The fd is
+        read at once and closed by the compositor.
+      </description>
+      <arg name="atlas" type="fd"/>
+      <arg name="size" type="uint"/>
+      <arg name="variants" type="uint"/>
+    </request>
+
+    <enum name="ink_kind">
+      <entry name="ink" value="0" summary="the dabs draw"/>
+      <entry name="erase" value="1" summary="the dabs whiten (an eraser): blend is ignored, white replaces"/>
+      <entry name="none" value="2" summary="no preview (the app's frame shows it)"/>
+    </enum>
+
+    <enum name="blend">
+      <entry name="darken" value="0" summary="min(old, ink): ink, a highlighter keeps text under it"/>
+      <entry name="lighten" value="1" summary="max(old, ink): a soft eraser"/>
+      <entry name="replace" value="2" summary="the ink's level replaces what is there (opaque paint)"/>
+    </enum>
+
+    <request name="set_ink">
+      <description summary="what a dab writes">
+        grey 0 (black) .. 255 (white); opacity 0..255 scales the dab's
+        coverage. On the panel's fast (two-level) updates greys are dithered;
+        a highlighter = grey ~176, darken.
+      </description>
+      <arg name="kind" type="uint" enum="ink_kind"/>
+      <arg name="grey" type="uint"/>
+      <arg name="opacity" type="uint"/>
+      <arg name="blend" type="uint" enum="blend"/>
+    </request>
+
+    <enum name="curve">
+      <entry name="pressure_size" value="0" summary="pressure -> diameter (0 = width_min, 255 = width_max)"/>
+      <entry name="pressure_opacity" value="1" summary="pressure -> opacity multiplier (255 = 1)"/>
+      <entry name="velocity_size" value="2" summary="speed (0 .. ~450 mm/s) -> diameter multiplier (128 = 1, 255 = ~2)"/>
+      <entry name="tilt_size" value="3" summary="tilt (0 = upright .. 90 degrees) -> diameter multiplier (128 = 1)"/>
+    </enum>
+
+    <request name="set_curve">
+      <description summary="a dynamics curve">
+        points: 16 bytes, the curve's value at input 0, 1/15 .. 15/15 of its
+        range, linear in between. An empty array removes the curve (back to
+        the default: pressure_size = pressure^pressure_exponent of set_brush,
+        1 for exponent-less brushes; the others flat at 1).
+      </description>
+      <arg name="curve" type="uint" enum="curve"/>
+      <arg name="points" type="array"/>
+    </request>
+
+    <request name="set_scatter">
+      <description summary="extra dabs around the path">
+        count 0..8 extra dabs per spaced step, each offset by up to
+        position_jitter diameters (0..2) and resized by up to +-size_jitter
+        (0..1) and its opacity scaled by 1-opacity_jitter*rand (0..1).
+        Airbrush: count 4, position_jitter 0.6, opacity low.
+      </description>
+      <arg name="count" type="uint"/>
+      <arg name="position_jitter" type="fixed"/>
+      <arg name="size_jitter" type="fixed"/>
+      <arg name="opacity_jitter" type="fixed"/>
+    </request>
+  </interface>
+</protocol>

@@ -24,6 +24,8 @@ pub(crate) mod globals;
 pub(crate) mod groupediconpicker;
 pub(crate) mod iconpicker;
 pub(crate) mod mainheader;
+#[cfg(target_os = "linux")]
+pub(crate) mod glassine_ink;
 pub(crate) mod overlays;
 pub(crate) mod penpicker;
 pub(crate) mod penssidebar;

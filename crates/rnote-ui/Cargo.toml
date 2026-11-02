@@ -58,6 +58,14 @@ tracing-subscriber = { workspace = true }
 unicode-segmentation = { workspace = true }
 url = { workspace = true }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# the e-ink pen preview (src/glassine_ink.rs)
+gdk4-wayland = { version = "0.10", features = ["wayland_crate"] }
+libc = "0.2"
+wayland-backend = { version = "0.3", features = ["client_system"] }
+wayland-client = "0.31"
+wayland-scanner = "0.31"
+
 [build-dependencies]
 anyhow = { workspace = true }
 glib-build-tools = { workspace = true }

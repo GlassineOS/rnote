@@ -330,6 +330,9 @@ impl RnAppWindow {
         if let Some(enable_text_preprocessing) = widget_flags.enable_text_preprocessing {
             canvas.set_text_preprocessing(enable_text_preprocessing);
         }
+        // the e-ink pen preview: canvas area + brush (after every event, hover included)
+        #[cfg(target_os = "linux")]
+        crate::glassine_ink::update(self, canvas);
     }
 
     /// Get the active (selected) tab page.

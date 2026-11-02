@@ -21,9 +21,10 @@ win_build_environment_path = get_option('win-build-environment-path')
 win_installer_name = get_option('win-installer-name')
 
 app_name = 'rnote'
-app_name_capitalized = 'Rnote'
+# GlassineOS fork (Rnote Ink): own name and app ID, beside upstream Rnote
+app_name_capitalized = 'Rnote Ink'
 cli_name = 'rnote-cli'
-base_id = 'com.github.flxzt.' + app_name
+base_id = 'org.glassine.RnoteInk'
 app_website = 'https://rnote.flxzt.net'
 app_repo_url = 'https://github.com/flxzt/rnote'
 app_issues_url = 'https://github.com/flxzt/rnote/issues'

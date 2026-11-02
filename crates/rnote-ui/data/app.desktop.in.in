@@ -1,7 +1,7 @@
 [Desktop Entry]
 # Translators: This is the App name, don't translate this.
 Name=@DESKTOP_FILE_NAME_ENTRY@
-Comment=Sketch and take handwritten notes
+Comment=Sketch and take handwritten notes, with instant pen ink on e-ink
 # Translators: Do NOT translate or transliterate this text, this is an icon file name!
 Icon=@APP_ID@
 #DBusActivatable=true
@@ -11,7 +11,7 @@ MimeType=application/rnote;image/svg+xml;image/png;image/jpeg;application/pdf;ap
 Type=Application
 Categories=GNOME;GTK;Graphics;
 # Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
-Keywords=Gnome;GTK;Office;Graphics;Notes;
+Keywords=Gnome;GTK;Office;Graphics;Notes;Rnote;Ink;
 StartupNotify=true
 Actions=new-window
 
