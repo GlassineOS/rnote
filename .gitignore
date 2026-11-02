@@ -10,3 +10,6 @@
 .idea/
 .toggletasks.json
 *.flatpak
+
+# Flatpak build output (build-glassine.sh)
+/out/
