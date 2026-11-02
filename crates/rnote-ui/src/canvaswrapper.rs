@@ -459,7 +459,18 @@ mod imp {
                         mouse_drag_start,
                         #[weak(rename_to=canvaswrapper)]
                         obj,
-                        move |_, _, _| {
+                        move |gesture, _, _| {
+                            // GlassineOS: a stylus barrel button is not a middle mouse button.
+                            // GTK maps BTN_STYLUS to GDK_BUTTON_MIDDLE; the canvas handles it as a
+                            // shortcut (StylusSecondaryButton) but lets the press through, so
+                            // hovering with the button held (e.g. as a temporary eraser) panned.
+                            if gesture
+                                .current_event()
+                                .is_some_and(|event| event.device_tool().is_some())
+                            {
+                                gesture.set_state(EventSequenceState::Denied);
+                                return;
+                            }
                             mouse_drag_start
                                 .set(canvaswrapper.canvas().engine_ref().camera.offset());
                         }
