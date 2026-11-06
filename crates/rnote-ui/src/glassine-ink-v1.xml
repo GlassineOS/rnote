@@ -4,7 +4,7 @@
     SPDX-License-Identifier: GPL-2.0-or-later
   </copyright>
   <description summary="pen ink areas for the e-ink panel">
-    On the Glassine the panel engine draws a pen stroke itself, straight from the
+    On a GlassineOS device the panel engine draws a pen stroke itself, straight from the
     pen's events, long before the app's own rendering arrives (the app's frame
     then replaces it). This protocol lets an app tell the compositor where on
     its surfaces the pen draws: its canvas, not its toolbar. The compositor
@@ -30,7 +30,7 @@
 
     <request name="create_brush" since="3">
       <description summary="a brush the panel engine stamps along the stroke">
-        A declarative brush "Brushes"): a tip
+        A declarative brush: a tip
         (a disc or the app's own coverage masks), spacing, dynamics curves,
         scatter, ink grey level and blend. The panel engine stamps it on the
         CPU right at the pen's tip; the app's own frame replaces the preview
