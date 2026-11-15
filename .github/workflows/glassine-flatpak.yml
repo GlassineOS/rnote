@@ -1,0 +1,62 @@
+# Rnote Ink's Flatpak (build-aux/org.glassine.RnoteInk.yaml), built by build-glassine.sh
+# on a native arm64 runner. Pull requests and branches keep the bundle as an artifact;
+# on the default branch, a release <upstream version>-glassine<build-aux/glassine-release>
+# carries it, once per tag (raise build-aux/glassine-release for a new one).
+name: flatpak
+on:
+  push:
+    branches: [glassine/0.14.2]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build
+        run: sh build-glassine.sh aarch64 out
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: rnote-ink-aarch64-${{ github.sha }}
+          retention-days: 14
+          path: |
+            out/rnote-ink-aarch64.flatpak
+            out/build-aarch64.log
+
+  release:
+    needs: build
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: rnote-ink-aarch64-${{ github.sha }}
+          path: out
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(sed -n "s/^project(.*version: '\([0-9.]*\)'.*/\1/p" meson.build)
+          tag=$ver-glassine$(cat build-aux/glassine-release)
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::notice::$tag exists; raise build-aux/glassine-release for a new one"
+            exit 0
+          fi
+          cd out
+          sha256sum rnote-ink-aarch64.flatpak > SHA256SUMS
+          gh release create "$tag" --target "$GITHUB_SHA" --title "Rnote Ink $tag" \
+            --notes "Rnote Ink (org.glassine.RnoteInk) built from $GITHUB_SHA, aarch64. Install: flatpak install --user --bundle rnote-ink-aarch64.flatpak" \
+            rnote-ink-aarch64.flatpak SHA256SUMS

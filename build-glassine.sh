@@ -2,7 +2,8 @@
 # Build Rnote Ink as a Flatpak (build-aux/org.glassine.RnoteInk.yaml) in a container:
 #   build-glassine.sh [aarch64|x86_64] [OUT]     -> OUT/rnote-ink-ARCH.flatpak (a bundle)
 # The SDK, its rust extension and flatpak-builder's cache live in OUT/fp-ARCH
-# (several GB; reused; default OUT = ./out, keep it outside git). aarch64 runs under qemu (binfmt): about an hour.
+# (several GB; reused; default OUT = ./out, keep it outside git). aarch64 on an x86_64 host runs under
+# qemu (binfmt): about an hour; native on an arm64 host.
 # Install on the device: flatpak install --user --bundle rnote-ink-aarch64.flatpak
 set -e
 A=${1:-aarch64}
@@ -10,9 +11,11 @@ D=$(cd "$(dirname "$0")" && pwd)
 OUT=$(mkdir -p "${2:-$D/out}" && cd "${2:-$D/out}" && pwd)
 case $A in aarch64|x86_64) ;; *) echo "arch: aarch64|x86_64"; exit 2 ;; esac
 mkdir -p "$OUT/fp-$A"
-# a native (x86_64) container: bwrap needs real namespaces (none under qemu-user);
-# only the build commands of an aarch64 build run under qemu (binfmt, F flag)
-docker run --rm --privileged --platform linux/amd64 -e HOST_UID="$(id -u)" -v "$D":/m:ro -v "$OUT":/out alpine:3.24 sh -ec '
+# a native container: bwrap needs real namespaces (none under qemu-user); on an
+# x86_64 host only the build commands of an aarch64 build run under qemu (binfmt, F
+# flag), on an arm64 host (CI) the aarch64 build is native
+case $(uname -m) in aarch64|arm64) P=linux/arm64 ;; *) P=linux/amd64 ;; esac
+docker run --rm --privileged --platform $P -e HOST_UID="$(id -u)" -v "$D":/m:ro -v "$OUT":/out alpine:3.24 sh -ec '
 apk add -q flatpak flatpak-builder git patch >/dev/null
 export FLATPAK_USER_DIR=/out/fp-'$A'/flatpak
 flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
